@@ -15,10 +15,24 @@ module.exports = (app) => {
       location:`'${req.body.location}'`,
     }
     session
-      .run(`CREATE (t:User {username:${t.username}, password:${t.password}, email:${t.email}, image:${t.image}, location:${t.location}})`)
-      .then((result) => {
+      .run('MATCH (t:User) RETURN t')
+      .then((allUsers) => {
+        let recordsA = [];
+        for (i=0; i<allUsers.records.length; i++) {
+          recordsA.push(allUsers.records[i]._fields[0].properties.username)
+        };
+        if (recordsA.includes(req.body.username)) {
+          res.send(`${t.username} is already taken. Please pick a different username.`)
+        } else {
+        session.run(`CREATE (t:User {username:${t.username}, password:${t.password}, email:${t.email}, image:${t.image}, location:${t.location}})`)
+        .then((result) => {
+          res.send(result)
+        })
+      }})
+      //.run(`CREATE (t:User {username:${t.username}, password:${t.password}, email:${t.email}, image:${t.image}, location:${t.location}})`)
+      /*.then((result) => {
         res.send(result)
-      })
+      })*/
       .catch((err) => {
         console.log(err)
       })
