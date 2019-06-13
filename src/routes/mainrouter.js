@@ -17,22 +17,22 @@ module.exports = (app) => {
     session
       .run('MATCH (t:User) RETURN t')
       .then((allUsers) => {
-        let recordsA = [];
+        let recordsUsername = [];
+        let recordsEmail = [];
         for (i=0; i<allUsers.records.length; i++) {
-          recordsA.push(allUsers.records[i]._fields[0].properties.username)
+          recordsUsername.push(allUsers.records[i]._fields[0].properties.username);
+          recordsEmail.push(allUsers.records[i]._fields[0].properties.email)
         };
-        if (recordsA.includes(req.body.username)) {
+        if (recordsUsername.includes(req.body.username)) {
           res.send(`${t.username} is already taken. Please pick a different username.`)
+        } else if (recordsEmail.includes(req.body.email)) {
+          res.send(`${t.email} already exists. Please login with your username and password`)
         } else {
         session.run(`CREATE (t:User {username:${t.username}, password:${t.password}, email:${t.email}, image:${t.image}, location:${t.location}})`)
         .then((result) => {
           res.send(result)
         })
       }})
-      //.run(`CREATE (t:User {username:${t.username}, password:${t.password}, email:${t.email}, image:${t.image}, location:${t.location}})`)
-      /*.then((result) => {
-        res.send(result)
-      })*/
       .catch((err) => {
         console.log(err)
       })
@@ -67,11 +67,23 @@ module.exports = (app) => {
      role:`'${req.body.role}'`
    }
    session
-     .run(`MATCH (t:User {username:${r.user}}), (p:Project {title:${r.project}})
+      .run(`MATCH (p:Project {title: ${r.project}})<-[:CONTRIBUTES_TO {projectOwner: "yes"}]-(owner) RETURN owner`)
+      .then((ownerCheck) => {
+        let recordOwner = [];
+        recordOwner.push(ownerCheck.records[0]);
+        if(recordOwner[0] == null) {
+          res.send("This project doesn't have an owner")
+        } else {
+          res.send("This project already has an owner")
+        }
+      })
+
+
+     /*.run(`MATCH (t:User {username:${r.user}}), (p:Project {title:${r.project}})
            CREATE (t)-[:CONTRIBUTES_TO {projectOwner:${r.projectOwner}, role:${r.role}}]->(p)`)
      .then((result) => {
-       res.send(result)
-     })
+       res.send(result.records[0])
+     })*/
      .catch((err) => {
        console.log(err)
      })
