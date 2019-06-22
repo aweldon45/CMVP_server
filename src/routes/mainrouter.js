@@ -49,16 +49,25 @@ module.exports = (app) => {
      tags:`'${req.body.tags}'`
    }
    session
-     .run(`CREATE (p:Project {title:${p.title}, vimeoLink:${p.vimeoLink}, genre:${p.genre}, image:${p.image}, info:${p.info}, tags:${p.tags}})`)
-     .then((result) => {
-       res.send(result)
-     })
-     .catch((err) => {
-       console.log(err)
-     })
+    .run(`MATCH (p:Project {title: ${p.title}}) RETURN p`)
+    .then((result) => {
+      if (result.records[0] == null) {
+        session.run(`CREATE (p:Project {title:${p.title}, vimeoLink:${p.vimeoLink}, genre:${p.genre}, image:${p.image}, info:${p.info}, tags:${p.tags}})`)
+        .then(() => {
+          res.send(`${p.title} is now on Collabeteria!`)
+        })
+      } else {
+        res.send("This project already exists. Please choose a new title.")
+      }
+    })
+    .catch((err) => {
+      console.log(err)
+    })
  });
 
- // Define roles for contributors to a Project
+ // Define roles and Project Owner for contributors to a Project
+ // role requests need to be routed for approval before sent to the database
+ // current build pushes through all requests except project owner
  app.put('/addrole',(req, res) => {
    const r = {
      user: `'${req.body.user}'`,
@@ -67,26 +76,37 @@ module.exports = (app) => {
      role:`'${req.body.role}'`
    }
    session
-      .run(`MATCH (p:Project {title: ${r.project}})<-[:CONTRIBUTES_TO {projectOwner: "yes"}]-(owner) RETURN owner`)
-      .then((ownerCheck) => {
-        let recordOwner = [];
-        recordOwner.push(ownerCheck.records[0]);
-        if(recordOwner[0] == null) {
-          res.send("This project doesn't have an owner")
-        } else {
-          res.send("This project already has an owner")
-        }
-      })
-
-
-     /*.run(`MATCH (t:User {username:${r.user}}), (p:Project {title:${r.project}})
-           CREATE (t)-[:CONTRIBUTES_TO {projectOwner:${r.projectOwner}, role:${r.role}}]->(p)`)
-     .then((result) => {
-       res.send(result.records[0])
-     })*/
-     .catch((err) => {
-       console.log(err)
-     })
+    .run(`MATCH (p:Project {title: ${r.project}}) RETURN p`)
+    .then((result) => {
+      if (result.records[0] == null) {
+      res.send("This project hasn't been created yet. Do you want to create it?")} else {
+        session.run(`MATCH (p:Project {title: ${r.project}})<-[:CONTRIBUTES_TO {projectOwner: "yes"}]-(owner) RETURN owner`)
+          .then((ownerCheck) => {
+            let recordOwner = [];
+            recordOwner.push(ownerCheck.records[0]);
+            if(recordOwner[0] == null) {
+              session.run(`MATCH (t:User {username:${r.user}}), (p:Project {title:${r.project}})
+                    CREATE (t)-[:CONTRIBUTES_TO {projectOwner: "yes", role:${r.role}}]->(p)`)
+              .then(() => {
+                res.send("This is the first time this project is in Collabeteria, so you'll need to be the Project Owner")
+              });
+            } else {
+              session.run(`MATCH (t:User {username:${r.user}}), (p:Project {title:${r.project}})
+                    CREATE (t)-[:CONTRIBUTES_TO {role:${r.role}}]->(p)`)
+              .then(() => {
+                if(r.projectOwner == "'yes'") {
+                    res.send("This project already has an owner. We sent them your role request and will let you know when it's approved.")
+                } else {
+                  res.send("We sent the Project Owner your role request and will let you know when it's approved.")
+                };
+              });
+            }
+          })
+          .catch((err) => {
+           console.log(err)
+         })
+      }
+    })
  });
 
 }
