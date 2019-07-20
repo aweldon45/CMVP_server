@@ -109,4 +109,19 @@ module.exports = (app) => {
     })
  });
 
+ // get request for all information for given username
+ app.get('/profile',(req, res) => {
+   const g = {
+     user: `'${req.body.user}'`
+   }
+   session
+    .run(`MATCH (t:User {username: ${g.user}}) - [r:CONTRIBUTES_TO]->(p) RETURN t.username, p.title, r.role`)
+    .then((result) => {
+      res.send(result.records[0]._fields)
+    })
+    .catch((err) => {
+      console.log(err)
+    })
+ })
+
 }
