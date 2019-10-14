@@ -30,7 +30,7 @@ module.exports = (app) => {
         } else {
         session.run(`CREATE (t:User {username:${t.username}, password:${t.password}, email:${t.email}, image:${t.image}, location:${t.location}})`)
         .then((result) => {
-          res.send(result)
+          res.send('Welcome to Collabeteria!')
         })
       }})
       .catch((err) => {
@@ -115,7 +115,7 @@ module.exports = (app) => {
      user: `'${req.body.user}'`
    }
    session
-    .run(`MATCH (t:User {username: ${g.user}}) - [r:CONTRIBUTES_TO]->(p) RETURN t.username, p.title, r.role`)
+    .run(`MATCH (t:User {username: ${g.user}}) - [r:CONTRIBUTES_TO]->(p) RETURN t.username, t.email, p.title, r.role`)
     .then((result) => {
       res.send(result.records[0]._fields)
     })
