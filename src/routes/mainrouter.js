@@ -124,4 +124,21 @@ module.exports = (app) => {
     })
  })
 
+ // get all users and associated projects
+ app.get('/allUsers',(req, res) => {
+
+   session
+    .run(`MATCH (t:User) - [r:CONTRIBUTES_TO]->(p) RETURN {name: t.username, email: t.email, title: p.title, role: r.role} as User`)
+    .then((result) => {
+      let resArray = [];
+      for (let i=0; i<result.records.length; i++) {
+        resArray.push(result.records[i]._fields)
+      }
+      res.send(resArray)
+    })
+    .catch((err) => {
+      console.log(err)
+    })
+ })
+
 }
