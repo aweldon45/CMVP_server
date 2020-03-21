@@ -14,8 +14,30 @@ module.exports = (app) => {
       image:`'${req.body.image}'`,
       location:`'${req.body.location}'`,
     }
-    session
-      .run('MATCH (t:User) RETURN t')
+
+//user data validation
+    let vToken = 'Not Ok';
+
+   const uDvalidation = () => {
+      if (t.username == `''`) {
+        res.send('please add an image')
+      } else if (t.password == `''` ) {
+        res.send('please add a password')
+      } else if (t.email == `''` ) {
+        res.send('please add a email')
+      } else if (t.image == `''` ) {
+        res.send('please add a image')
+      } else if (t.location == `''` ) {
+        res.send('please add a location')
+      } else {
+        vToken = 'Ok'
+        return vToken
+      }
+    }
+
+//unique name validation
+      const uNvalidation = () => {
+      session.run('MATCH (t:User) RETURN t')
       .then((allUsers) => {
         let recordsUsername = [];
         let recordsEmail = [];
@@ -36,6 +58,20 @@ module.exports = (app) => {
       .catch((err) => {
         console.log(err)
       })
+    }
+
+//Check that both validations are run
+    const valCheck = () => {
+      if (vToken == 'Ok') {
+          console.log(vToken)
+          uNvalidation()
+          } else {
+          console.log(vToken)
+            }
+        }
+
+        uDvalidation()
+        valCheck()
   });
 
  // Add a project node to the Graph
@@ -140,5 +176,34 @@ module.exports = (app) => {
       console.log(err)
     })
  })
+
+ //login
+ app.get('/login',(req, res) => {
+   const g = {
+     user: `'${req.body.user}'`,
+     password: `'${req.body.password}'`
+   }
+
+   //username and password validations for login
+   const exister = () => {
+     session
+      .run(`MATCH (t:User {username: ${g.user}}) - [r:CONTRIBUTES_TO]->(p) RETURN t.username, t.email, p.title, r.role`)
+      .then((result) => {
+        if (g.user == `${result.records[0]._fields[0]}`) {
+          res.send(result.records[0]._fields)
+        } else {
+          res.send("Sorry that username doesn't exist")
+          console.log(result.records[0]._fields[0])
+        }
+      })
+      .catch((err) => {
+        console.log(err)
+      })
+   }
+
+   exister();
+
+ })
+
 
 }
